@@ -1,1 +1,4 @@
 .idea
+summary.md
+*.torrent
+node_modules

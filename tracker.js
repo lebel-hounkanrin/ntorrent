@@ -6,8 +6,13 @@ import * as crypto from "node:crypto";
 import * as buffer from "node:buffer";
 import {genId} from "./utils.js";
 import bencode from "bencode";
-import * as bignum from "bignum";
+// import * as bignum from "bignum";
 
+/**
+ * Récupère les peers du tracker
+ * @param torrent
+ * @param callback
+ */
 const getPeers = (torrent, callback) => {
     const socket = dgram.createSocket("udp4");
     const url = torrent.announce.toString("utf-8");
@@ -24,6 +29,13 @@ const getPeers = (torrent, callback) => {
     })
 }
 
+/**
+ * Envoie une requête au tracker
+ * @param socket
+ * @param msg
+ * @param rawUrl
+ * @param cb
+ */
 const udpSend = (socket, msg, rawUrl, cb) => {
     const url = new URL(rawUrl);
     socket.send(msg, 0, msg.length, url.port, url.host, cb);
@@ -36,6 +48,12 @@ const respType = (resp) => {
 const buildConnReq = (connResp) => {
 }
 
+/**
+ * Cette fonction formate la requête a envoyé au tracker
+ * @param connId
+ * @param torrent
+ * @param port
+ */
 const buildAnnounceReq = (connId, torrent, port=6881) => {
     const buffer = Buffer.allocUnsafe(98);
 
@@ -102,6 +120,6 @@ const infoHash =  (torrent) => {
 }
 const size =  (torrent) => {
     const size = torrent.info.files ? torrent.info.map(f => f.length).reduce((a, b) => a+b) : torrent.info.length;
-    return bignum.toBuffer(size, {size: 8})
+    // return bignum.toBuffer(size, {size: 8})
 }
 export  {getPeers}

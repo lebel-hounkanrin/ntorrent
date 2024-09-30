@@ -14,6 +14,7 @@ import bencode from "bencode";
  * @param callback
  */
 const getPeers = (torrent, callback) => {
+    console.log("Getting Peers start....")
     const socket = dgram.createSocket("udp4");
     const url = torrent.announce.toString("utf-8");
     const reqBody = createReq();
@@ -22,10 +23,10 @@ const getPeers = (torrent, callback) => {
     socket.on("message", res => {
         if(respType(res) === "connect") {
             const connResp = parseConnResp(res);
-            const announceReq = buildAnnounceReq(connResp.connectionId);
+            const announceReq = buildAnnounceReq(connResp.connectionId, torrent);
             udpSend(socket, announceReq, url);
         } else if(respType(res) === "announce") {
-            const announceResp = parseAnnounceResp(response);
+            const announceResp = parseAnnounceResp(res);
             callback(announceResp.peers);
         }
     });
@@ -57,6 +58,7 @@ const respType = (resp) => {
  */
 const buildAnnounceReq = (connId, torrent, port=6881) => {
     const buffer = Buffer.allocUnsafe(98);
+    console.log("Build Announce start....")
 
     connId.copy(buffer, 0); // connection_id
     buffer.writeUInt32BE(1, 8); // action, 1 for the announce req
@@ -69,8 +71,10 @@ const buildAnnounceReq = (connId, torrent, port=6881) => {
     buffer.writeUInt32BE(0, 80); //event
     buffer.writeUInt32BE(0, 84); //optional ip add
     crypto.randomBytes(4).copy(buffer, 88); //random key
-    buffer.writeUInt32BE(-1, 92); //Number of peers that the client would like to receive from the tracker.
-    buffer.writeUInt32BE(port, 96);
+    buffer.writeInt32BE(-1, 92); //Number of peers that the client would like to receive from the tracker.
+    buffer.writeUInt16BE(port, 96);
+
+    return buffer
 }
 
 const parseAnnounceResp = (resp) => {
@@ -119,8 +123,14 @@ const infoHash =  (torrent) => {
     const info = bencode.encode(torrent.info)
     return crypto.createHash("sha1").update(info).digest();
 }
-const size =  (torrent) => {
-    const size = torrent.info.files ? torrent.info.map(f => f.length).reduce((a, b) => a+b) : torrent.info.length;
-    return bignum.toBuffer(size, {size: 8})
-}
+const size = (torrent) => {
+    const totalSize = torrent.info.files
+        ? torrent.info.files.map(f => f.length).reduce((a, b) => a + b, 0)
+        : torrent.info.length;
+
+    const buffer = Buffer.alloc(8);
+    buffer.writeBigUInt64BE(BigInt(totalSize));
+    return buffer;
+};
+
 export  {getPeers}

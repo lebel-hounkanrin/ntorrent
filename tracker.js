@@ -58,7 +58,7 @@ const respType = (resp) => {
  */
 const buildAnnounceReq = (connId, torrent, port=6881) => {
     const buffer = Buffer.allocUnsafe(98);
-    console.log("Build Announce start....")
+    console.log("Building Announce request....")
 
     connId.copy(buffer, 0); // connection_id
     buffer.writeUInt32BE(1, 8); // action, 1 for the announce req
@@ -78,6 +78,7 @@ const buildAnnounceReq = (connId, torrent, port=6881) => {
 }
 
 const parseAnnounceResp = (resp) => {
+    console.log("Parsing Announce Response....")
     const group = (iterable, groupSize) => {
         let groups = [];
         for (let i = 0; i < iterable.length; i += groupSize) {
@@ -101,6 +102,8 @@ const parseAnnounceResp = (resp) => {
 }
 
 const createReq = () => {
+    console.log("Building Connection request....")
+
     const buffer = Buffer.alloc(16);
 
     buffer.writeUInt32BE(0x417, 0);
@@ -112,6 +115,7 @@ const createReq = () => {
 }
 
 const parseConnResp = (res) => {
+    console.log("Parsing Connection response....")
     return {
         action: res.readUInt32BE(0),
         transactionId: res.readUInt32BE(4),

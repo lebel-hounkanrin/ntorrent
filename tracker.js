@@ -16,17 +16,21 @@ import bencode from "bencode";
 const getPeers = (torrent, callback) => {
     const socket = dgram.createSocket("udp4");
     const url = torrent.announce.toString("utf-8");
+    const reqBody = createReq();
+    udpSend(socket, reqBody, url);
 
     socket.on("message", res => {
         if(respType(res) === "connect") {
-            const connResp = parseConnResp(response);
+            const connResp = parseConnResp(res);
             const announceReq = buildAnnounceReq(connResp.connectionId);
             udpSend(socket, announceReq, url);
         } else if(respType(res) === "announce") {
             const announceResp = parseAnnounceResp(response);
             callback(announceResp.peers);
         }
-    })
+    });
+
+    socket.on("error", err => {"something went wrong"});
 }
 
 /**
@@ -38,14 +42,11 @@ const getPeers = (torrent, callback) => {
  */
 const udpSend = (socket, msg, rawUrl, cb) => {
     const url = new URL(rawUrl);
-    socket.send(msg, 0, msg.length, url.port, url.host, cb);
+    socket.send(msg, 0, msg.length, url.port, url.hostname, cb);
 }
 
 const respType = (resp) => {
     return resp.readUInt32BE(0) === 0 ?  "connect" : "announce";
-}
-
-const buildConnReq = (connResp) => {
 }
 
 /**
@@ -57,18 +58,18 @@ const buildConnReq = (connResp) => {
 const buildAnnounceReq = (connId, torrent, port=6881) => {
     const buffer = Buffer.allocUnsafe(98);
 
-    connId.copy(buffer, 0);
-    buffer.writeUInt32BE(1, 8);
-    crypto.randomBytes(4).copy(buffer, 12);
-    infoHash(torrent).copy(buffer, 64);
-    genId().copy(buffer, 36);
-    Buffer.allocUnsafe(8).copy(buffer, 56);
-    size(torrent).copy(buffer, 64);
-    Buffer.alloc(8).copy(buffer, 72);
-    buffer.writeUInt32BE(0, 80);
-    buffer.writeUInt32BE(0, 80);
-    crypto.randomBytes(4).copy(buffer, 88);
-    buffer.writeUInt32BE(-1, 92);
+    connId.copy(buffer, 0); // connection_id
+    buffer.writeUInt32BE(1, 8); // action, 1 for the announce req
+    crypto.randomBytes(4).copy(buffer, 12); // generate transaction id
+    infoHash(torrent).copy(buffer, 64); // info_hash
+    genId().copy(buffer, 36); //peer_id
+    Buffer.allocUnsafe(8).copy(buffer, 56); //downloaded
+    size(torrent).copy(buffer, 64); //left
+    Buffer.alloc(8).copy(buffer, 72); //uploaded
+    buffer.writeUInt32BE(0, 80); //event
+    buffer.writeUInt32BE(0, 84); //optional ip add
+    crypto.randomBytes(4).copy(buffer, 88); //random key
+    buffer.writeUInt32BE(-1, 92); //Number of peers that the client would like to receive from the tracker.
     buffer.writeUInt32BE(port, 96);
 }
 
@@ -120,6 +121,6 @@ const infoHash =  (torrent) => {
 }
 const size =  (torrent) => {
     const size = torrent.info.files ? torrent.info.map(f => f.length).reduce((a, b) => a+b) : torrent.info.length;
-    // return bignum.toBuffer(size, {size: 8})
+    return bignum.toBuffer(size, {size: 8})
 }
 export  {getPeers}

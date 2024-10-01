@@ -63,10 +63,10 @@ const buildAnnounceReq = (connId, torrent, port=6881) => {
     connId.copy(buffer, 0); // connection_id
     buffer.writeUInt32BE(1, 8); // action, 1 for the announce req
     crypto.randomBytes(4).copy(buffer, 12); // generate transaction id
-    infoHash(torrent).copy(buffer, 64); // info_hash
+    getInfoHash(torrent).copy(buffer, 64); // info_hash
     genId().copy(buffer, 36); //peer_id
     Buffer.allocUnsafe(8).copy(buffer, 56); //downloaded
-    size(torrent).copy(buffer, 64); //left
+    getTorrentSize(torrent).copy(buffer, 64); //left
     Buffer.alloc(8).copy(buffer, 72); //uploaded
     buffer.writeUInt32BE(0, 80); //event
     buffer.writeUInt32BE(0, 84); //optional ip add
@@ -123,11 +123,11 @@ const parseConnResp = (res) => {
     }
 }
 
-const infoHash =  (torrent) => {
+const getInfoHash =  (torrent) => {
     const info = bencode.encode(torrent.info)
     return crypto.createHash("sha1").update(info).digest();
 }
-const size = (torrent) => {
+const getTorrentSize = (torrent) => {
     const totalSize = torrent.info.files
         ? torrent.info.files.map(f => f.length).reduce((a, b) => a + b, 0)
         : torrent.info.length;
@@ -137,4 +137,4 @@ const size = (torrent) => {
     return buffer;
 };
 
-export  {getPeers}
+export  {getPeers, getInfoHash}

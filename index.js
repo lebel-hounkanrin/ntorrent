@@ -6,9 +6,12 @@ import {default as bencode }  from 'bencode';
 import {Buffer} from 'buffer';
 import {URL} from "node:url";
 import {getPeers} from "./tracker.js";
+import {download} from "./download.js";
 const torrent = bencode.decode(fs.readFileSync("./dstrange.torrent"), undefined , undefined , "utf-8");
 
 
 getPeers(torrent, peers => {
-    console.log("list of peers", peers);
+    peers.forEach(peer => {
+        download(peer, torrent);
+    });
 });

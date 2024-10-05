@@ -11,7 +11,8 @@ const torrent = bencode.decode(fs.readFileSync("./dstrange.torrent"), undefined 
 
 
 getPeers(torrent, peers => {
+    const requested = []
     peers.forEach(peer => {
-        download(peer, torrent);
+        download(peer, torrent, requested);
     });
 });

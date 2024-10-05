@@ -11,7 +11,7 @@ export const buildHandshake = (torrent) =>  {
     buffer.writeUInt32BE(0, 20); //reserved
     buffer.writeUInt32BE(0, 24); //reserved
     getInfoHash(torrent).copy(buffer, 28);
-    buffer.write(genId(), 48); //peer id
+    buffer.write(genId().toString(), 48); //peer id
     return buffer;
 }
 

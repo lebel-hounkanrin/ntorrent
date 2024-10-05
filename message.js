@@ -21,3 +21,13 @@ export const buildInterestedMsg = () => {
     buffer.writeUInt8(2, 4);
     return buffer;
 }
+
+export const buildRequest = (payload) => {
+    const buf = Buffer.alloc(17);
+    buf.writeUInt32BE(13, 0);
+    buf.writeUInt8(6, 4);
+    buf.writeUInt32BE(payload.index, 5);
+    buf.writeUInt32BE(payload.begin, 9);
+    buf.writeUInt32BE(payload.length, 13);
+    return buf;
+}

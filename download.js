@@ -1,20 +1,20 @@
 import * as net from "node:net";
 import {Buffer} from "buffer";
-import {buildHandshake, buildInterestedMsg} from "./message.js";
+import {buildHandshake, buildInterestedMsg, buildRequest} from "./message.js";
 
 
-export const download = (peer, torrent, requested) => {
+export const download = (peer, torrent, pieces) => {
     const {ip: peer_ip, port: peer_port} = peer;
     const socket = net.Socket();
+    const queue = {choked: true, queue: []};
     socket.on("error", (err) => {
         console.log(err);
     });
-    console.log(`Trying connection to ${peer_ip}:${peer_port}`);
     socket.connect(peer_port, peer_ip, () => {
         console.log("Connected to peer ", peer_ip);
         socket.write(buildHandshake(torrent));
     });
-    onWhileMsg(socket, (msg, socket) => msgHandler(msg, socket, requested));
+    onWhileMsg(socket, (msg) => msgHandler(msg, socket, pieces, queue));
 }
 
 const onWhileMsg = (socket, cb) => {
@@ -32,16 +32,16 @@ const onWhileMsg = (socket, cb) => {
     })
 }
 
-const msgHandler = (message, socket, requested) => {
+const msgHandler = (message, socket, pieces, queue) => {
     if(isHandshake(message)) socket.write(buildInterestedMsg());
     else {
         const parsedMessage = parse(message);
         switch(parsedMessage.id) {
-            case 0: chokeHandler(); break;
-            case 1: unchokeHandler(); break;
-            case 4: haveHandler(parsedMessage.payload, socket, requested); break;
+            case 0: chokeHandler(socket); break;
+            case 1: unchokeHandler(socket, pieces, queue); break;
+            case 4: haveHandler(parsedMessage.payload, socket, requested, queue); break;
             case 5: bitfieldHandler(parsedMessage.payload); break;
-            case 7: pieceHandler(parsedMessage.payload); break;
+            case 7: pieceHandler(parsedMessage.payload, queue); break;
         }
     }
 }
@@ -69,14 +69,31 @@ export const parse = (message) => {
     }
 }
 
-const chokeHandler = () => {}
-const unchokeHandler = () => {}
-const haveHandler = (payload, socket, requested) => {
+const chokeHandler = (socket) => {socket.end()}
+const unchokeHandler = (socket, pieces, queue) => {
+    queue.choked = false;
+    requestPiece(socket, pieces, queue);
+}
+const haveHandler = (payload, socket, requested, queue) => {
     const pieceIndex = payload.readUInt32BE(0);
-    if (!requested[pieceIndex]) {
-        socket.write(message.buildRequest());
+    queue.push(pieceIndex);
+    if (queue.length === 1) {
+        requestPiece(socket, requested, queue);
     }
-    requested[pieceIndex] = true;
 }
 const bitfieldHandler = (payload) => {}
-const pieceHandler = (payload) => {}
+const pieceHandler = (payload, socket, requested, queue) => {
+    queue.shift();
+    requestPiece(socket, requested, queue);
+}
+const requestPiece = (socket, pieces, queue) => {
+    if (queue.choked) return null;
+    while (queue.queue.length) {
+        const pieceIndex = queue.shift();
+        if (pieces.needed(pieceIndex)) {
+            socket.write(buildRequest(pieceIndex));
+            pieces.addRequested(pieceIndex);
+            break;
+        }
+    }
+}

@@ -8,7 +8,7 @@ import {URL} from "node:url";
 import {getPeers} from "./tracker.js";
 import {download} from "./download.js";
 import {Pieces} from "./Pieces.js";
-const torrent = bencode.decode(fs.readFileSync("./dstrange.torrent"), undefined , undefined , "utf-8");
+const torrent = bencode.decode(fs.readFileSync(`${process.cwd()}/sample.torrent`), undefined , undefined , "utf-8");
 
 
 getPeers(torrent, peers => {

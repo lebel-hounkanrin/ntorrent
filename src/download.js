@@ -1,6 +1,6 @@
 import * as net from "node:net";
 import {Buffer} from "buffer";
-import {buildHandshake, buildInterestedMsg, buildRequest} from "./message.js";
+import {_buildHanshake, buildHandshake, buildInterestedMsg, buildRequest} from "./message.js";
 
 
 export const download = (peer, torrent, pieces) => {
@@ -8,13 +8,23 @@ export const download = (peer, torrent, pieces) => {
     const socket = net.Socket();
     const queue = {choked: true, queue: []};
     socket.on("error", (err) => {
-        console.log(err);
+        // console.log(err);
     });
     socket.connect(peer_port, peer_ip, () => {
-        console.log("Connected to peer ", peer_ip);
-        socket.write(buildHandshake(torrent));
+        // console.log("Connected to peer ", peer_ip, peer_port);
+        // console.log('Handshake:', buildHandshake(torrent).toString('hex'));
+        socket.write(_buildHanshake(torrent));
     });
-    onWhileMsg(socket, (msg) => msgHandler(msg, socket, pieces, queue));
+    socket.on("data", chunk => {
+        console.log("chunk", chunk);})
+    socket.on('close', () => {
+        console.log('Connection closed');
+    });
+    socket.on('timeout', () => {
+        console.error('Socket timeout');
+        socket.destroy(); // Clean up
+    });
+    // onWhileMsg(socket, (msg) => msgHanSdler(msg, socket, pieces, queue));
 }
 
 const onWhileMsg = (socket, cb) => {

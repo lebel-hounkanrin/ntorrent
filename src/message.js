@@ -10,9 +10,32 @@ export const buildHandshake = (torrent) =>  {
     buffer.write(pstr, 1) //pstr
     buffer.writeUInt32BE(0, 20); //reserved
     buffer.writeUInt32BE(0, 24); //reserved
-    getInfoHash(torrent).copy(buffer, 28);
-    buffer.write(genId().toString(), 48); //peer id
+    const infoHash = getInfoHash(torrent);
+    infoHash.copy(buffer, 28);
+    const peerId = genId()
+    peerId.copy(buffer, 48);
+    // buffer.write(genId(), 48); //peer id
     return buffer;
+}
+
+export const  _buildHanshake = (torrent) =>  {
+    const pstr = 'BitTorrent protocol';
+
+    const pstrlen = Buffer.from([pstr.length]);
+
+    const reserved = Buffer.alloc(8, 0);
+
+    const infoHash = Buffer.from(getInfoHash(torrent), 'hex');
+    console.log(infoHash)
+
+    const peerID = Buffer.from("00112233445566778899");
+    return Buffer.concat([
+        pstrlen,
+        Buffer.from(pstr),
+        reserved,
+        infoHash,
+        peerID
+    ]);
 }
 
 export const buildInterestedMsg = () => {

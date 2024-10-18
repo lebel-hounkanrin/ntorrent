@@ -7,11 +7,14 @@ import {Buffer} from 'buffer';
 import {URL} from "node:url";
 import {getPeers} from "./tracker.js";
 import {download} from "./download.js";
-const torrent = bencode.decode(fs.readFileSync("./dstrange.torrent"), undefined , undefined , "utf-8");
+import {Pieces} from "./Pieces.js";
+const torrent = bencode.decode(fs.readFileSync(`${process.cwd()}/sample.torrent`), undefined , undefined , "utf-8");
 
 
 getPeers(torrent, peers => {
+    const requested = []
+    const pieces = new Pieces(Math.ceil(torrent.info.pieces.length / 20));
     peers.forEach(peer => {
-        download(peer, torrent);
+        download(peer, torrent, pieces);
     });
 });

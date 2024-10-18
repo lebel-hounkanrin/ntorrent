@@ -43,7 +43,8 @@ const getPeers = (torrent, callback) => {
  */
 const udpSend = (socket, msg, rawUrl, cb) => {
     const url = new URL(rawUrl);
-    socket.send(msg, 0, msg.length, url.port, url.hostname, cb);
+    const port = url.port || 80;
+    socket.send(msg, 0, msg.length, port, url.hostname, cb);
 }
 
 const respType = (resp) => {
